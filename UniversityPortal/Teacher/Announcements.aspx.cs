@@ -1,16 +1,13 @@
 ﻿using System;
-using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Web.UI.WebControls;
-using UniversityPortal.Student;
+using UniversityPortal.Data;
 
 namespace UniversityPortal.Teacher
 {
     public partial class Announcements : System.Web.UI.Page
     {
-        string connStr = ConfigurationManager.ConnectionStrings["UniversityDB"].ConnectionString;
-
         protected void Page_Load(object sender, EventArgs e)
         {
             if (Session["Role"]?.ToString() != "Teacher")
@@ -29,40 +26,29 @@ namespace UniversityPortal.Teacher
         private void LoadCourses()
         {
             int teacherId = (int)Session["UserId"];
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                string query = "SELECT CourseId, CourseName, CourseCode FROM Courses WHERE TeacherId = @TeacherId";
-                SqlDataAdapter da = new SqlDataAdapter(query, conn);
-                da.SelectCommand.Parameters.AddWithValue("@TeacherId", teacherId);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
+            string query = "SELECT CourseId, CourseName, CourseCode FROM Courses WHERE TeacherId = @TeacherId";
 
-                ddlCourse.DataSource = dt;
-                ddlCourse.DataTextField = "CourseName";
-                ddlCourse.DataValueField = "CourseId";
-                ddlCourse.DataBind();
-                ddlCourse.Items.Insert(0, new ListItem("-- Select Course --", ""));
-            }
+            DataTable dt = DbConnection.GetData(query, new SqlParameter("@TeacherId", teacherId));
+
+            ddlCourse.DataSource = dt;
+            ddlCourse.DataTextField = "CourseName";
+            ddlCourse.DataValueField = "CourseId";
+            ddlCourse.DataBind();
+            ddlCourse.Items.Insert(0, new ListItem("-- Select Course --", ""));
         }
 
         private void LoadAnnouncements()
         {
             int teacherId = (int)Session["UserId"];
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                string query = @"SELECT a.AnnouncementId, c.CourseName, a.Title, a.Content, a.CreatedDate
-                                FROM Announcements a
-                                INNER JOIN Courses c ON a.CourseId = c.CourseId
-                                WHERE a.TeacherId = @TeacherId
-                                ORDER BY a.CreatedDate DESC";
+            string query = @"SELECT a.AnnouncementId, c.CourseName, a.Title, a.Content, a.CreatedDate
+                            FROM Announcements a
+                            INNER JOIN Courses c ON a.CourseId = c.CourseId
+                            WHERE a.TeacherId = @TeacherId
+                            ORDER BY a.CreatedDate DESC";
 
-                SqlDataAdapter da = new SqlDataAdapter(query, conn);
-                da.SelectCommand.Parameters.AddWithValue("@TeacherId", teacherId);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                gvAnnouncements.DataSource = dt;
-                gvAnnouncements.DataBind();
-            }
+            DataTable dt = DbConnection.GetData(query, new SqlParameter("@TeacherId", teacherId));
+            gvAnnouncements.DataSource = dt;
+            gvAnnouncements.DataBind();
         }
 
         protected void btnSave_Click(object sender, EventArgs e)
@@ -77,41 +63,41 @@ namespace UniversityPortal.Teacher
 
                 int teacherId = (int)Session["UserId"];
                 int courseId = int.Parse(ddlCourse.SelectedValue);
+                string query;
+                SqlParameter[] parameters;
 
-                using (SqlConnection conn = new SqlConnection(connStr))
+                if (string.IsNullOrEmpty(hfAnnouncementId.Value))
                 {
-                    conn.Open();
-                    string query;
+                    query = @"INSERT INTO Announcements (CourseId, TeacherId, Title, Content) 
+                             VALUES (@CourseId, @TeacherId, @Title, @Content)";
 
-                    if (string.IsNullOrEmpty(hfAnnouncementId.Value))
+                    parameters = new SqlParameter[]
                     {
-                        // Insert
-                        query = @"INSERT INTO Announcements (CourseId, TeacherId, Title, Content) 
-                                 VALUES (@CourseId, @TeacherId, @Title, @Content)";
-                    }
-                    else
-                    {
-                        // Update
-                        query = @"UPDATE Announcements SET CourseId=@CourseId, Title=@Title, Content=@Content 
-                                 WHERE AnnouncementId=@AnnouncementId AND TeacherId=@TeacherId";
-                    }
-
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@CourseId", courseId);
-                        cmd.Parameters.AddWithValue("@TeacherId", teacherId);
-                        cmd.Parameters.AddWithValue("@Title", txtTitle.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Content", txtContent.Text.Trim());
-
-                        if (!string.IsNullOrEmpty(hfAnnouncementId.Value))
-                            cmd.Parameters.AddWithValue("@AnnouncementId", int.Parse(hfAnnouncementId.Value));
-
-                        cmd.ExecuteNonQuery();
-                        ShowMessage("Announcement posted successfully!", "alert-success");
-                        ClearForm();
-                        LoadAnnouncements();
-                    }
+                        new SqlParameter("@CourseId", courseId),
+                        new SqlParameter("@TeacherId", teacherId),
+                        new SqlParameter("@Title", txtTitle.Text.Trim()),
+                        new SqlParameter("@Content", txtContent.Text.Trim())
+                    };
                 }
+                else
+                {
+                    query = @"UPDATE Announcements SET CourseId=@CourseId, Title=@Title, Content=@Content 
+                             WHERE AnnouncementId=@AnnouncementId AND TeacherId=@TeacherId";
+
+                    parameters = new SqlParameter[]
+                    {
+                        new SqlParameter("@CourseId", courseId),
+                        new SqlParameter("@TeacherId", teacherId),
+                        new SqlParameter("@Title", txtTitle.Text.Trim()),
+                        new SqlParameter("@Content", txtContent.Text.Trim()),
+                        new SqlParameter("@AnnouncementId", int.Parse(hfAnnouncementId.Value))
+                    };
+                }
+
+                DbConnection.ExecuteCommand(query, parameters);
+                ShowMessage("Announcement posted successfully!", "alert-success");
+                ClearForm();
+                LoadAnnouncements();
             }
             catch (Exception ex)
             {
@@ -131,23 +117,23 @@ namespace UniversityPortal.Teacher
         private void LoadAnnouncementForEdit(int announcementId)
         {
             int teacherId = (int)Session["UserId"];
-            using (SqlConnection conn = new SqlConnection(connStr))
+            string query = "SELECT * FROM Announcements WHERE AnnouncementId = @AnnouncementId AND TeacherId = @TeacherId";
+            SqlParameter[] parameters = new SqlParameter[]
             {
-                string query = "SELECT * FROM Announcements WHERE AnnouncementId = @AnnouncementId AND TeacherId = @TeacherId";
-                using (SqlCommand cmd = new SqlCommand(query, conn))
+                new SqlParameter("@AnnouncementId", announcementId),
+                new SqlParameter("@TeacherId", teacherId)
+            };
+
+            using (SqlConnection conn = DbConnection.GetConnection())
+            {
+                SqlDataReader reader = DbConnection.GetReader(query, conn, parameters);
+                if (reader.Read())
                 {
-                    cmd.Parameters.AddWithValue("@AnnouncementId", announcementId);
-                    cmd.Parameters.AddWithValue("@TeacherId", teacherId);
-                    conn.Open();
-                    SqlDataReader reader = cmd.ExecuteReader();
-                    if (reader.Read())
-                    {
-                        hfAnnouncementId.Value = reader["AnnouncementId"].ToString();
-                        ddlCourse.SelectedValue = reader["CourseId"].ToString();
-                        txtTitle.Text = reader["Title"].ToString();
-                        txtContent.Text = reader["Content"].ToString();
-                        lblFormTitle.Text = "Edit Announcement";
-                    }
+                    hfAnnouncementId.Value = reader["AnnouncementId"].ToString();
+                    ddlCourse.SelectedValue = reader["CourseId"].ToString();
+                    txtTitle.Text = reader["Title"].ToString();
+                    txtContent.Text = reader["Content"].ToString();
+                    lblFormTitle.Text = "Edit Announcement";
                 }
             }
         }
@@ -157,19 +143,16 @@ namespace UniversityPortal.Teacher
             int announcementId = int.Parse(gvAnnouncements.DataKeys[e.RowIndex].Value.ToString());
             int teacherId = (int)Session["UserId"];
 
-            using (SqlConnection conn = new SqlConnection(connStr))
+            string query = "DELETE FROM Announcements WHERE AnnouncementId = @AnnouncementId AND TeacherId = @TeacherId";
+            SqlParameter[] parameters = new SqlParameter[]
             {
-                conn.Open();
-                string query = "DELETE FROM Announcements WHERE AnnouncementId = @AnnouncementId AND TeacherId = @TeacherId";
-                using (SqlCommand cmd = new SqlCommand(query, conn))
-                {
-                    cmd.Parameters.AddWithValue("@AnnouncementId", announcementId);
-                    cmd.Parameters.AddWithValue("@TeacherId", teacherId);
-                    cmd.ExecuteNonQuery();
-                    ShowMessage("Announcement deleted successfully!", "alert-success");
-                    LoadAnnouncements();
-                }
-            }
+                new SqlParameter("@AnnouncementId", announcementId),
+                new SqlParameter("@TeacherId", teacherId)
+            };
+
+            DbConnection.ExecuteCommand(query, parameters);
+            ShowMessage("Announcement deleted successfully!", "alert-success");
+            LoadAnnouncements();
         }
 
         protected void btnCancel_Click(object sender, EventArgs e)

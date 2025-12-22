@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Configuration;
 using System.Data;
 using System.Web.UI.WebControls;
 
@@ -7,8 +6,6 @@ namespace UniversityPortal.Student
 {
     public partial class GpaCalculator : System.Web.UI.Page
     {
-        string connStr = ConfigurationManager.ConnectionStrings["UniversityDB"].ConnectionString;
-
         protected void Page_Load(object sender, EventArgs e)
         {
             if (Session["Role"]?.ToString() != "Student")
@@ -19,7 +16,7 @@ namespace UniversityPortal.Student
 
             if (!IsPostBack)
             {
-                GenerateCourseFields(5); // Default 5 courses
+                GenerateCourseFields(5);
             }
         }
 
@@ -66,12 +63,10 @@ namespace UniversityPortal.Student
                     Label lblGrade = (Label)item.FindControl("lblGrade");
                     Label lblGradePoints = (Label)item.FindControl("lblGradePoints");
 
-                    // Skip if course name is empty
                     if (string.IsNullOrWhiteSpace(txtCourseName.Text))
                         continue;
 
-                    // Get credit hours from user input
-                    int creditHours = 3; // Default
+                    int creditHours = 3;
                     if (!string.IsNullOrEmpty(txtCreditHours.Text))
                     {
                         int.TryParse(txtCreditHours.Text, out creditHours);
@@ -84,7 +79,6 @@ namespace UniversityPortal.Student
                     double total = mids + internals + finals;
                     lblTotal.Text = total.ToString("F2");
 
-                    // Calculate grade and grade points
                     string grade = GetGrade(total);
                     double gradePoints = GetGradePoints(total);
 
@@ -96,7 +90,6 @@ namespace UniversityPortal.Student
                 }
             }
 
-            // Calculate GPA
             double gpa = totalCredits > 0 ? qualityPoints / totalCredits : 0;
 
             lblTotalCredits.Text = totalCredits.ToString("F0");

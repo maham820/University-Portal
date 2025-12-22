@@ -1,13 +1,11 @@
 ﻿using System;
-using System.Configuration;
 using System.Data.SqlClient;
+using UniversityPortal.Data;
 
 namespace UniversityPortal
 {
     public partial class Login : System.Web.UI.Page
     {
-        string connStr = ConfigurationManager.ConnectionStrings["UniversityDB"].ConnectionString;
-
         protected void Page_Load(object sender, EventArgs e)
         {
             if (Session["UserId"] != null)
@@ -29,32 +27,27 @@ namespace UniversityPortal
 
             try
             {
-                using (SqlConnection conn = new SqlConnection(connStr))
+                string query = "SELECT UserId, FullName, Role FROM Users WHERE Username = @Username AND Password = @Password";
+                SqlParameter[] parameters = new SqlParameter[]
                 {
-                    conn.Open();
-                    string query = "SELECT UserId, FullName, Role FROM Users WHERE Username = @Username AND Password = @Password";
+                    new SqlParameter("@Username", username),
+                    new SqlParameter("@Password", password)
+                };
 
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                using (SqlConnection conn = DbConnection.GetConnection())
+                {
+                    SqlDataReader reader = DbConnection.GetReader(query, conn, parameters);
+                    if (reader.Read())
                     {
-                        cmd.Parameters.AddWithValue("@Username", username);
-                        cmd.Parameters.AddWithValue("@Password", password);
+                        Session["UserId"] = reader["UserId"];
+                        Session["FullName"] = reader["FullName"];
+                        Session["Role"] = reader["Role"];
 
-                        using (SqlDataReader reader = cmd.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                // Login successful
-                                Session["UserId"] = reader["UserId"];
-                                Session["FullName"] = reader["FullName"];
-                                Session["Role"] = reader["Role"];
-
-                                RedirectBasedOnRole(reader["Role"].ToString());
-                            }
-                            else
-                            {
-                                ShowError("Invalid username or password");
-                            }
-                        }
+                        RedirectBasedOnRole(reader["Role"].ToString());
+                    }
+                    else
+                    {
+                        ShowError("Invalid username or password");
                     }
                 }
             }

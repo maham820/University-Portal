@@ -122,6 +122,7 @@
     <Compile Include="Admin\Teachers.aspx.designer.cs">
       <DependentUpon>Teachers.aspx</DependentUpon>
     </Compile>
+    <Compile Include="Data\DbConnection.cs" />
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>

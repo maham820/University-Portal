@@ -1,15 +1,13 @@
 ﻿using System;
-using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Web.UI.WebControls;
+using UniversityPortal.Data;
 
 namespace UniversityPortal.Admin
 {
     public partial class Students : System.Web.UI.Page
     {
-        string connStr = ConfigurationManager.ConnectionStrings["UniversityDB"].ConnectionString;
-
         protected void Page_Load(object sender, EventArgs e)
         {
             if (Session["Role"]?.ToString() != "Admin")
@@ -26,65 +24,67 @@ namespace UniversityPortal.Admin
 
         private void LoadStudents()
         {
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                string query = "SELECT UserId, FullName, Username, Email, CreatedDate FROM Users WHERE Role = 'Student' ORDER BY FullName";
-                SqlDataAdapter da = new SqlDataAdapter(query, conn);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                gvStudents.DataSource = dt;
-                gvStudents.DataBind();
-            }
+            string query = "SELECT UserId, FullName, Username, Email, CreatedDate FROM Users WHERE Role = 'Student' ORDER BY FullName";
+            DataTable dt = DbConnection.GetData(query);
+            gvStudents.DataSource = dt;
+            gvStudents.DataBind();
         }
 
         protected void btnSave_Click(object sender, EventArgs e)
         {
             try
             {
-                using (SqlConnection conn = new SqlConnection(connStr))
-                {
-                    conn.Open();
-                    string query;
+                string query;
+                SqlParameter[] parameters;
 
-                    if (string.IsNullOrEmpty(hfUserId.Value))
+                if (string.IsNullOrEmpty(hfUserId.Value))
+                {
+                    query = @"INSERT INTO Users (Username, Password, FullName, Email, Role) 
+                             VALUES (@Username, @Password, @FullName, @Email, 'Student')";
+
+                    parameters = new SqlParameter[]
                     {
-                        // Insert
-                        query = @"INSERT INTO Users (Username, Password, FullName, Email, Role) 
-                                 VALUES (@Username, @Password, @FullName, @Email, 'Student')";
+                        new SqlParameter("@FullName", txtFullName.Text.Trim()),
+                        new SqlParameter("@Username", txtUsername.Text.Trim()),
+                        new SqlParameter("@Email", txtEmail.Text.Trim()),
+                        new SqlParameter("@Password", txtPassword.Text)
+                    };
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(txtPassword.Text))
+                    {
+                        query = @"UPDATE Users SET FullName=@FullName, Username=@Username, Email=@Email 
+                                 WHERE UserId=@UserId";
+
+                        parameters = new SqlParameter[]
+                        {
+                            new SqlParameter("@FullName", txtFullName.Text.Trim()),
+                            new SqlParameter("@Username", txtUsername.Text.Trim()),
+                            new SqlParameter("@Email", txtEmail.Text.Trim()),
+                            new SqlParameter("@UserId", int.Parse(hfUserId.Value))
+                        };
                     }
                     else
                     {
-                        // Update
-                        if (string.IsNullOrEmpty(txtPassword.Text))
+                        query = @"UPDATE Users SET FullName=@FullName, Username=@Username, 
+                                 Password=@Password, Email=@Email WHERE UserId=@UserId";
+
+                        parameters = new SqlParameter[]
                         {
-                            query = @"UPDATE Users SET FullName=@FullName, Username=@Username, Email=@Email 
-                                     WHERE UserId=@UserId";
-                        }
-                        else
-                        {
-                            query = @"UPDATE Users SET FullName=@FullName, Username=@Username, 
-                                     Password=@Password, Email=@Email WHERE UserId=@UserId";
-                        }
-                    }
-
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@FullName", txtFullName.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Username", txtUsername.Text.Trim());
-                        cmd.Parameters.AddWithValue("@Email", txtEmail.Text.Trim());
-
-                        if (!string.IsNullOrEmpty(txtPassword.Text))
-                            cmd.Parameters.AddWithValue("@Password", txtPassword.Text);
-
-                        if (!string.IsNullOrEmpty(hfUserId.Value))
-                            cmd.Parameters.AddWithValue("@UserId", int.Parse(hfUserId.Value));
-
-                        cmd.ExecuteNonQuery();
-                        ShowMessage("Student saved successfully!", "alert-success");
-                        ClearForm();
-                        LoadStudents();
+                            new SqlParameter("@FullName", txtFullName.Text.Trim()),
+                            new SqlParameter("@Username", txtUsername.Text.Trim()),
+                            new SqlParameter("@Email", txtEmail.Text.Trim()),
+                            new SqlParameter("@Password", txtPassword.Text),
+                            new SqlParameter("@UserId", int.Parse(hfUserId.Value))
+                        };
                     }
                 }
+
+                DbConnection.ExecuteCommand(query, parameters);
+                ShowMessage("Student saved successfully!", "alert-success");
+                ClearForm();
+                LoadStudents();
             }
             catch (Exception ex)
             {
@@ -103,23 +103,23 @@ namespace UniversityPortal.Admin
 
         private void LoadStudentForEdit(int userId)
         {
-            using (SqlConnection conn = new SqlConnection(connStr))
+            string query = "SELECT * FROM Users WHERE UserId = @UserId";
+            SqlParameter[] parameters = new SqlParameter[]
             {
-                string query = "SELECT * FROM Users WHERE UserId = @UserId";
-                using (SqlCommand cmd = new SqlCommand(query, conn))
+                new SqlParameter("@UserId", userId)
+            };
+
+            using (SqlConnection conn = DbConnection.GetConnection())
+            {
+                SqlDataReader reader = DbConnection.GetReader(query, conn, parameters);
+                if (reader.Read())
                 {
-                    cmd.Parameters.AddWithValue("@UserId", userId);
-                    conn.Open();
-                    SqlDataReader reader = cmd.ExecuteReader();
-                    if (reader.Read())
-                    {
-                        hfUserId.Value = reader["UserId"].ToString();
-                        txtFullName.Text = reader["FullName"].ToString();
-                        txtUsername.Text = reader["Username"].ToString();
-                        txtEmail.Text = reader["Email"].ToString();
-                        txtPassword.Text = "";
-                        lblFormTitle.Text = "Edit Student";
-                    }
+                    hfUserId.Value = reader["UserId"].ToString();
+                    txtFullName.Text = reader["FullName"].ToString();
+                    txtUsername.Text = reader["Username"].ToString();
+                    txtEmail.Text = reader["Email"].ToString();
+                    txtPassword.Text = "";
+                    lblFormTitle.Text = "Edit Student";
                 }
             }
         }
@@ -127,18 +127,11 @@ namespace UniversityPortal.Admin
         protected void gvStudents_RowDeleting(object sender, GridViewDeleteEventArgs e)
         {
             int userId = int.Parse(gvStudents.DataKeys[e.RowIndex].Value.ToString());
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                conn.Open();
-                string query = "DELETE FROM Users WHERE UserId = @UserId";
-                using (SqlCommand cmd = new SqlCommand(query, conn))
-                {
-                    cmd.Parameters.AddWithValue("@UserId", userId);
-                    cmd.ExecuteNonQuery();
-                    ShowMessage("Student deleted successfully!", "alert-success");
-                    LoadStudents();
-                }
-            }
+
+            string query = "DELETE FROM Users WHERE UserId = @UserId";
+            DbConnection.ExecuteCommand(query, new SqlParameter("@UserId", userId));
+            ShowMessage("Student deleted successfully!", "alert-success");
+            LoadStudents();
         }
 
         protected void btnCancel_Click(object sender, EventArgs e)

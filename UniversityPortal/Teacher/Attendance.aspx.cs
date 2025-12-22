@@ -1,15 +1,13 @@
 ﻿using System;
-using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Web.UI.WebControls;
+using UniversityPortal.Data;
 
 namespace UniversityPortal.Teacher
 {
     public partial class Attendance : System.Web.UI.Page
     {
-        string connStr = ConfigurationManager.ConnectionStrings["UniversityDB"].ConnectionString;
-
         protected void Page_Load(object sender, EventArgs e)
         {
             if (Session["Role"]?.ToString() != "Teacher")
@@ -28,20 +26,15 @@ namespace UniversityPortal.Teacher
         private void LoadCourses()
         {
             int teacherId = (int)Session["UserId"];
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                string query = "SELECT CourseId, CourseName, CourseCode FROM Courses WHERE TeacherId = @TeacherId";
-                SqlDataAdapter da = new SqlDataAdapter(query, conn);
-                da.SelectCommand.Parameters.AddWithValue("@TeacherId", teacherId);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
+            string query = "SELECT CourseId, CourseName, CourseCode FROM Courses WHERE TeacherId = @TeacherId";
 
-                ddlCourse.DataSource = dt;
-                ddlCourse.DataTextField = "CourseName";
-                ddlCourse.DataValueField = "CourseId";
-                ddlCourse.DataBind();
-                ddlCourse.Items.Insert(0, new ListItem("-- Select Course --", ""));
-            }
+            DataTable dt = DbConnection.GetData(query, new SqlParameter("@TeacherId", teacherId));
+
+            ddlCourse.DataSource = dt;
+            ddlCourse.DataTextField = "CourseName";
+            ddlCourse.DataValueField = "CourseId";
+            ddlCourse.DataBind();
+            ddlCourse.Items.Insert(0, new ListItem("-- Select Course --", ""));
         }
 
         protected void ddlCourse_SelectedIndexChanged(object sender, EventArgs e)
@@ -61,21 +54,15 @@ namespace UniversityPortal.Teacher
         private void LoadStudents()
         {
             int courseId = int.Parse(ddlCourse.SelectedValue);
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                string query = @"SELECT e.EnrollmentId, u.FullName AS StudentName, u.Email
-                                FROM Enrollments e
-                                INNER JOIN Users u ON e.StudentId = u.UserId
-                                WHERE e.CourseId = @CourseId
-                                ORDER BY u.FullName";
+            string query = @"SELECT e.EnrollmentId, u.FullName AS StudentName, u.Email
+                            FROM Enrollments e
+                            INNER JOIN Users u ON e.StudentId = u.UserId
+                            WHERE e.CourseId = @CourseId
+                            ORDER BY u.FullName";
 
-                SqlDataAdapter da = new SqlDataAdapter(query, conn);
-                da.SelectCommand.Parameters.AddWithValue("@CourseId", courseId);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                gvStudents.DataSource = dt;
-                gvStudents.DataBind();
-            }
+            DataTable dt = DbConnection.GetData(query, new SqlParameter("@CourseId", courseId));
+            gvStudents.DataSource = dt;
+            gvStudents.DataBind();
         }
 
         protected void btnSaveAttendance_Click(object sender, EventArgs e)
@@ -84,7 +71,7 @@ namespace UniversityPortal.Teacher
             {
                 DateTime attendanceDate = DateTime.Parse(txtClassDate.Text);
 
-                using (SqlConnection conn = new SqlConnection(connStr))
+                using (SqlConnection conn = DbConnection.GetConnection())
                 {
                     conn.Open();
 
@@ -94,23 +81,20 @@ namespace UniversityPortal.Teacher
                         DropDownList ddlStatus = (DropDownList)row.FindControl("ddlStatus");
                         string status = ddlStatus.SelectedValue;
 
-                        // Check if attendance already exists for this date
                         string checkQuery = "SELECT COUNT(*) FROM Attendance WHERE EnrollmentId=@EnrollmentId AND AttendanceDate=@AttendanceDate";
-                        SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
-                        checkCmd.Parameters.AddWithValue("@EnrollmentId", enrollmentId);
-                        checkCmd.Parameters.AddWithValue("@AttendanceDate", attendanceDate);
-
-                        int count = (int)checkCmd.ExecuteScalar();
+                        int count = (int)DbConnection.GetSingleValue(checkQuery,
+                            new SqlParameter("@EnrollmentId", enrollmentId),
+                            new SqlParameter("@AttendanceDate", attendanceDate));
 
                         if (count == 0)
                         {
                             string insertQuery = @"INSERT INTO Attendance (EnrollmentId, AttendanceDate, Status) 
                                                   VALUES (@EnrollmentId, @AttendanceDate, @Status)";
-                            SqlCommand cmd = new SqlCommand(insertQuery, conn);
-                            cmd.Parameters.AddWithValue("@EnrollmentId", enrollmentId);
-                            cmd.Parameters.AddWithValue("@AttendanceDate", attendanceDate);
-                            cmd.Parameters.AddWithValue("@Status", status);
-                            cmd.ExecuteNonQuery();
+
+                            DbConnection.ExecuteCommand(insertQuery,
+                                new SqlParameter("@EnrollmentId", enrollmentId),
+                                new SqlParameter("@AttendanceDate", attendanceDate),
+                                new SqlParameter("@Status", status));
                         }
                     }
 
@@ -127,41 +111,27 @@ namespace UniversityPortal.Teacher
         private void LoadAttendanceHistory()
         {
             int courseId = int.Parse(ddlCourse.SelectedValue);
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                string query = @"SELECT a.AttendanceId, a.AttendanceDate AS ClassDate, u.FullName AS StudentName, a.Status
-                                FROM Attendance a
-                                INNER JOIN Enrollments e ON a.EnrollmentId = e.EnrollmentId
-                                INNER JOIN Users u ON e.StudentId = u.UserId
-                                WHERE e.CourseId = @CourseId
-                                ORDER BY a.AttendanceDate DESC, u.FullName";
+            string query = @"SELECT a.AttendanceId, a.AttendanceDate AS ClassDate, u.FullName AS StudentName, a.Status
+                            FROM Attendance a
+                            INNER JOIN Enrollments e ON a.EnrollmentId = e.EnrollmentId
+                            INNER JOIN Users u ON e.StudentId = u.UserId
+                            WHERE e.CourseId = @CourseId
+                            ORDER BY a.AttendanceDate DESC, u.FullName";
 
-                SqlDataAdapter da = new SqlDataAdapter(query, conn);
-                da.SelectCommand.Parameters.AddWithValue("@CourseId", courseId);
-                DataTable dt = new DataTable();
-                da.Fill(dt);
-                gvAttendanceHistory.DataSource = dt;
-                gvAttendanceHistory.DataBind();
-            }
+            DataTable dt = DbConnection.GetData(query, new SqlParameter("@CourseId", courseId));
+            gvAttendanceHistory.DataSource = dt;
+            gvAttendanceHistory.DataBind();
         }
 
         protected void btnDelete_Click(object sender, EventArgs e)
         {
             LinkButton btn = (LinkButton)sender;
             int attendanceId = int.Parse(btn.CommandArgument);
-            
-            using (SqlConnection conn = new SqlConnection(connStr))
-            {
-                conn.Open();
-                string query = "DELETE FROM Attendance WHERE AttendanceId = @AttendanceId";
-                using (SqlCommand cmd = new SqlCommand(query, conn))
-                {
-                    cmd.Parameters.AddWithValue("@AttendanceId", attendanceId);
-                    cmd.ExecuteNonQuery();
-                    ShowMessage("Attendance record deleted!", "alert-success");
-                    LoadAttendanceHistory();
-                }
-            }
+
+            string query = "DELETE FROM Attendance WHERE AttendanceId = @AttendanceId";
+            DbConnection.ExecuteCommand(query, new SqlParameter("@AttendanceId", attendanceId));
+            ShowMessage("Attendance record deleted!", "alert-success");
+            LoadAttendanceHistory();
         }
 
         private void ShowMessage(string message, string cssClass)

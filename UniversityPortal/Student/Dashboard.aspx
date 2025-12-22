@@ -39,6 +39,9 @@
                 <asp:BoundField DataField="Internals" HeaderText="Internals (25)" />
                 <asp:BoundField DataField="Finals" HeaderText="Finals (50)" />
                 <asp:BoundField DataField="Total" HeaderText="Total (100)" />
+                <asp:BoundField DataField="Percentage" HeaderText="Percentage" DataFormatString="{0:F2}%" />
+                <asp:BoundField DataField="LetterGrade" HeaderText="Grade" />
+                <asp:BoundField DataField="GPA" HeaderText="GPA" DataFormatString="{0:F2}" />
             </Columns>
         </asp:GridView>
     </div>

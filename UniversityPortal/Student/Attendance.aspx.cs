@@ -1,17 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
-using System.Web.UI;
+using UniversityPortal.Data;
 
 namespace UniversityPortal.Student
 {
     public partial class Attendance : System.Web.UI.Page
     {
-        string connStr = ConfigurationManager.ConnectionStrings["UniversityDB"].ConnectionString;
-
         protected void Page_Load(object sender, EventArgs e)
         {
             if (Session["Role"]?.ToString() != "Student")
@@ -33,93 +30,67 @@ namespace UniversityPortal.Student
 
             try
             {
-                using (SqlConnection conn = new SqlConnection(connStr))
+                // Get all courses the student is enrolled in
+                string coursesQuery = @"SELECT e.EnrollmentId, c.CourseId, c.CourseName, c.CourseCode, 
+                                       u.FullName AS TeacherName
+                                       FROM Enrollments e
+                                       INNER JOIN Courses c ON e.CourseId = c.CourseId
+                                       LEFT JOIN Users u ON c.TeacherId = u.UserId
+                                       WHERE e.StudentId = @StudentId";
+
+                DataTable dtCourses = DbConnection.GetData(coursesQuery, new SqlParameter("@StudentId", studentId));
+
+                foreach (DataRow row in dtCourses.Rows)
                 {
-                    conn.Open();
-
-                    // Get all courses the student is enrolled in
-                    string coursesQuery = @"SELECT e.EnrollmentId, c.CourseId, c.CourseName, c.CourseCode, 
-                                           u.FullName AS TeacherName
-                                           FROM Enrollments e
-                                           INNER JOIN Courses c ON e.CourseId = c.CourseId
-                                           LEFT JOIN Users u ON c.TeacherId = u.UserId
-                                           WHERE e.StudentId = @StudentId";
-
-                    using (SqlCommand cmd = new SqlCommand(coursesQuery, conn))
+                    int enrollmentId = (int)row["EnrollmentId"];
+                    CourseAttendance ca = new CourseAttendance
                     {
-                        cmd.Parameters.AddWithValue("@StudentId", studentId);
-                        SqlDataReader reader = cmd.ExecuteReader();
+                        EnrollmentId = enrollmentId,
+                        CourseId = (int)row["CourseId"],
+                        CourseName = row["CourseName"].ToString(),
+                        CourseCode = row["CourseCode"].ToString(),
+                        TeacherName = row["TeacherName"] != DBNull.Value ? row["TeacherName"].ToString() : "Not Assigned"
+                    };
 
-                        while (reader.Read())
+                    // Get attendance statistics
+                    string statsQuery = @"SELECT 
+                                        COUNT(*) as TotalClasses,
+                                        SUM(CASE WHEN Status = 'Present' THEN 1 ELSE 0 END) as Present,
+                                        SUM(CASE WHEN Status = 'Absent' THEN 1 ELSE 0 END) as Absent,
+                                        SUM(CASE WHEN Status = 'Late' THEN 1 ELSE 0 END) as Late
+                                        FROM Attendance
+                                        WHERE EnrollmentId = @EnrollmentId";
+
+                    DataTable dtStats = DbConnection.GetData(statsQuery, new SqlParameter("@EnrollmentId", enrollmentId));
+
+                    if (dtStats.Rows.Count > 0)
+                    {
+                        DataRow statsRow = dtStats.Rows[0];
+                        ca.TotalClasses = statsRow["TotalClasses"] != DBNull.Value ? (int)statsRow["TotalClasses"] : 0;
+                        ca.Present = statsRow["Present"] != DBNull.Value ? (int)statsRow["Present"] : 0;
+                        ca.Absent = statsRow["Absent"] != DBNull.Value ? (int)statsRow["Absent"] : 0;
+                        ca.Late = statsRow["Late"] != DBNull.Value ? (int)statsRow["Late"] : 0;
+
+                        if (ca.TotalClasses > 0)
                         {
-                            int enrollmentId = (int)reader["EnrollmentId"];
-                            CourseAttendance ca = new CourseAttendance
-                            {
-                                EnrollmentId = enrollmentId,
-                                CourseId = (int)reader["CourseId"],
-                                CourseName = reader["CourseName"].ToString(),
-                                CourseCode = reader["CourseCode"].ToString(),
-                                TeacherName = reader["TeacherName"] != DBNull.Value ? reader["TeacherName"].ToString() : "Not Assigned"
-                            };
-
-                            courseAttendanceList.Add(ca);
+                            ca.AttendancePercentage = ((ca.Present + ca.Late) * 100.0m) / ca.TotalClasses;
                         }
-                        reader.Close();
+                        else
+                        {
+                            ca.AttendancePercentage = 0;
+                        }
                     }
 
-                    // For each course, get attendance statistics and details
-                    foreach (var ca in courseAttendanceList)
-                    {
-                        // Get attendance statistics
-                        string statsQuery = @"SELECT 
-                                            COUNT(*) as TotalClasses,
-                                            SUM(CASE WHEN Status = 'Present' THEN 1 ELSE 0 END) as Present,
-                                            SUM(CASE WHEN Status = 'Absent' THEN 1 ELSE 0 END) as Absent,
-                                            SUM(CASE WHEN Status = 'Late' THEN 1 ELSE 0 END) as Late
-                                            FROM Attendance
-                                            WHERE EnrollmentId = @EnrollmentId";
+                    // Get attendance details
+                    string detailsQuery = @"SELECT AttendanceDate as ClassDate, Status,
+                                           DATENAME(WEEKDAY, AttendanceDate) as DayOfWeek
+                                           FROM Attendance
+                                           WHERE EnrollmentId = @EnrollmentId
+                                           ORDER BY AttendanceDate DESC";
 
-                        using (SqlCommand cmd = new SqlCommand(statsQuery, conn))
-                        {
-                            cmd.Parameters.AddWithValue("@EnrollmentId", ca.EnrollmentId);
-                            SqlDataReader reader = cmd.ExecuteReader();
+                    ca.AttendanceDetails = DbConnection.GetData(detailsQuery, new SqlParameter("@EnrollmentId", enrollmentId));
 
-                            if (reader.Read())
-                            {
-                                ca.TotalClasses = reader["TotalClasses"] != DBNull.Value ? (int)reader["TotalClasses"] : 0;
-                                ca.Present = reader["Present"] != DBNull.Value ? (int)reader["Present"] : 0;
-                                ca.Absent = reader["Absent"] != DBNull.Value ? (int)reader["Absent"] : 0;
-                                ca.Late = reader["Late"] != DBNull.Value ? (int)reader["Late"] : 0;
-
-                                // Calculate attendance percentage (Present + Late counted as attended)
-                                if (ca.TotalClasses > 0)
-                                {
-                                    ca.AttendancePercentage = ((ca.Present + ca.Late) * 100.0m) / ca.TotalClasses;
-                                }
-                                else
-                                {
-                                    ca.AttendancePercentage = 0;
-                                }
-                            }
-                            reader.Close();
-                        }
-
-                        // Get attendance details
-                        string detailsQuery = @"SELECT AttendanceDate as ClassDate, Status,
-                                               DATENAME(WEEKDAY, AttendanceDate) as DayOfWeek
-                                               FROM Attendance
-                                               WHERE EnrollmentId = @EnrollmentId
-                                               ORDER BY AttendanceDate DESC";
-
-                        using (SqlCommand cmd = new SqlCommand(detailsQuery, conn))
-                        {
-                            cmd.Parameters.AddWithValue("@EnrollmentId", ca.EnrollmentId);
-                            SqlDataAdapter da = new SqlDataAdapter(cmd);
-                            DataTable dt = new DataTable();
-                            da.Fill(dt);
-                            ca.AttendanceDetails = dt;
-                        }
-                    }
+                    courseAttendanceList.Add(ca);
                 }
 
                 // Calculate overall statistics
@@ -161,7 +132,6 @@ namespace UniversityPortal.Student
             }
         }
 
-        // Helper method to get status color for inline styling
         protected string GetStatusColor(string status)
         {
             switch (status?.ToLower())
@@ -184,7 +154,6 @@ namespace UniversityPortal.Student
             pnlMessage.Visible = true;
         }
 
-        // Helper class to store course attendance data
         public class CourseAttendance
         {
             public int EnrollmentId { get; set; }
