@@ -33,8 +33,7 @@
 
     <div class="card">
         <h3>My Announcements</h3>
-        <asp:GridView ID="gvAnnouncements" runat="server" AutoGenerateColumns="False" DataKeyNames="AnnouncementId"
-            OnRowCommand="gvAnnouncements_RowCommand" OnRowDeleting="gvAnnouncements_RowDeleting">
+        <asp:GridView ID="gvAnnouncements" runat="server" AutoGenerateColumns="False" DataKeyNames="AnnouncementId">
             <Columns>
                 <asp:BoundField DataField="CourseName" HeaderText="Course" />
                 <asp:BoundField DataField="Title" HeaderText="Title" />
@@ -42,11 +41,13 @@
                 <asp:BoundField DataField="CreatedDate" HeaderText="Posted On" DataFormatString="{0:MM/dd/yyyy hh:mm tt}" />
                 <asp:TemplateField HeaderText="Actions">
                     <ItemTemplate>
-                        <asp:LinkButton ID="btnEdit" runat="server" CommandName="EditAnnouncement" 
-                            CommandArgument='<%# Eval("AnnouncementId") %>' CssClass="btn btn-primary" Text="Edit" />
-                        <asp:LinkButton ID="btnDelete" runat="server" CommandName="Delete" 
+                        <asp:LinkButton ID="btnEdit" runat="server" 
+                            CommandArgument='<%# Eval("AnnouncementId") %>' CssClass="btn btn-primary" Text="Edit" 
+                            OnClick="btnEdit_Click" />
+                        <asp:LinkButton ID="btnDelete" runat="server" 
                             CommandArgument='<%# Eval("AnnouncementId") %>' CssClass="btn btn-danger" 
-                            Text="Delete" OnClientClick="return confirm('Delete this announcement?');" />
+                            Text="Delete" OnClientClick="return confirm('Delete this announcement?');" 
+                            OnClick="btnDelete_Click" />
                     </ItemTemplate>
                 </asp:TemplateField>
             </Columns>

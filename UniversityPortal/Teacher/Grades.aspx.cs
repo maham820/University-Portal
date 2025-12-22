@@ -68,11 +68,6 @@ namespace UniversityPortal.Teacher
             gvGrades.DataBind();
         }
 
-        protected void gvGrades_RowCommand(object sender, GridViewCommandEventArgs e)
-        {
-            // Can add row-specific commands here if needed
-        }
-
         protected void btnSaveGrades_Click(object sender, EventArgs e)
         {
             try
@@ -108,6 +103,25 @@ namespace UniversityPortal.Teacher
                 }
 
                 ShowMessage("Grades saved successfully!", "alert-success");
+                LoadGrades();
+            }
+            catch (Exception ex)
+            {
+                ShowMessage("Error: " + ex.Message, "alert-danger");
+            }
+        }
+
+        protected void btnDeleteGrade_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                LinkButton btn = (LinkButton)sender;
+                int enrollmentId = int.Parse(btn.CommandArgument);
+
+                string query = "DELETE FROM Grades WHERE EnrollmentId = @EnrollmentId";
+                DbConnection.ExecuteCommand(query, new SqlParameter("@EnrollmentId", enrollmentId));
+
+                ShowMessage("Grades cleared successfully!", "alert-success");
                 LoadGrades();
             }
             catch (Exception ex)

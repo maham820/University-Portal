@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using System.Data.SqlClient;
 using UniversityPortal.Data;
 
@@ -27,28 +28,34 @@ namespace UniversityPortal
 
             try
             {
-                string query = "SELECT UserId, FullName, Role FROM Users WHERE Username = @Username AND Password = @Password";
+                string query = "SELECT * FROM Users WHERE Username = @Username AND Password = @Password";
                 SqlParameter[] parameters = new SqlParameter[]
                 {
-                    new SqlParameter("@Username", username),
-                    new SqlParameter("@Password", password)
+                    new SqlParameter("@Username", txtUsername.Text.Trim()),
+                    new SqlParameter("@Password", txtPassword.Text)
                 };
 
-                using (SqlConnection conn = DbConnection.GetConnection())
-                {
-                    SqlDataReader reader = DbConnection.GetReader(query, conn, parameters);
-                    if (reader.Read())
-                    {
-                        Session["UserId"] = reader["UserId"];
-                        Session["FullName"] = reader["FullName"];
-                        Session["Role"] = reader["Role"];
+                DataTable dt = DbConnection.GetData(query, parameters);
 
-                        RedirectBasedOnRole(reader["Role"].ToString());
-                    }
-                    else
-                    {
-                        ShowError("Invalid username or password");
-                    }
+                if (dt.Rows.Count > 0)
+                {
+                    DataRow row = dt.Rows[0];
+                    Session["UserId"] = row["UserId"];
+                    Session["Role"] = row["Role"];
+                    Session["FullName"] = row["FullName"];
+
+                    // Redirect based on role
+                    string role = row["Role"].ToString();
+                    if (role == "Admin")
+                        Response.Redirect("~/Admin/Dashboard.aspx");
+                    else if (role == "Teacher")
+                        Response.Redirect("~/Teacher/Dashboard.aspx");
+                    else if (role == "Student")
+                        Response.Redirect("~/Student/Dashboard.aspx");
+                }
+                else
+                {
+                    ShowError("Invalid username or password");
                 }
             }
             catch (Exception ex)

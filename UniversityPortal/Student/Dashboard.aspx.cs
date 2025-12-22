@@ -110,6 +110,7 @@ namespace UniversityPortal.Student
 
         private string GetLetterGrade(decimal percentage)
         {
+            if (percentage == 0) return "NA";
             if (percentage >= 85) return "A";
             if (percentage >= 80) return "A-";
             if (percentage >= 75) return "B+";

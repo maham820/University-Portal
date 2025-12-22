@@ -38,8 +38,7 @@
 
     <div class="card">
         <h3>All Students</h3>
-        <asp:GridView ID="gvStudents" runat="server" AutoGenerateColumns="False" DataKeyNames="UserId"
-            OnRowCommand="gvStudents_RowCommand" OnRowDeleting="gvStudents_RowDeleting">
+        <asp:GridView ID="gvStudents" runat="server" AutoGenerateColumns="False" OnRowCommand="gvStudents_RowCommand">
             <Columns>
                 <asp:BoundField DataField="UserId" HeaderText="ID" />
                 <asp:BoundField DataField="FullName" HeaderText="Full Name" />
@@ -50,7 +49,7 @@
                     <ItemTemplate>
                         <asp:LinkButton ID="btnEdit" runat="server" CommandName="EditStudent" 
                             CommandArgument='<%# Eval("UserId") %>' CssClass="btn btn-primary" Text="Edit" />
-                        <asp:LinkButton ID="btnDelete" runat="server" CommandName="Delete" 
+                        <asp:LinkButton ID="btnDelete" runat="server" CommandName="DeleteStudent" 
                             CommandArgument='<%# Eval("UserId") %>' CssClass="btn btn-danger" 
                             Text="Delete" OnClientClick="return confirm('Delete this student?');" />
                     </ItemTemplate>

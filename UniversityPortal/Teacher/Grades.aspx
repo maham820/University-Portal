@@ -20,7 +20,7 @@
             <h3>Student Grades</h3>
             <p><strong>Grading System:</strong> Mids (25 marks) + Internals (25 marks) + Finals (50 marks) = 100 marks total</p>
             
-            <asp:GridView ID="gvGrades" runat="server" AutoGenerateColumns="False" DataKeyNames="EnrollmentId" OnRowCommand="gvGrades_RowCommand">
+            <asp:GridView ID="gvGrades" runat="server" AutoGenerateColumns="False" DataKeyNames="EnrollmentId">
                 <Columns>
                     <asp:BoundField DataField="StudentName" HeaderText="Student Name" />
                     <asp:TemplateField HeaderText="Mids (0-25)">
@@ -39,6 +39,17 @@
                         </ItemTemplate>
                     </asp:TemplateField>
                     <asp:BoundField DataField="Total" HeaderText="Total (100)" ReadOnly="True" />
+                    <asp:TemplateField HeaderText="Actions">
+                        <ItemTemplate>
+                            <asp:LinkButton ID="btnDeleteGrade" runat="server" 
+                                CommandArgument='<%# Eval("EnrollmentId") %>' 
+                                CssClass="btn btn-danger" 
+                                Text="Clear Grades" 
+                                OnClientClick="return confirm('Clear all grades for this student?');" 
+                                OnClick="btnDeleteGrade_Click" 
+                                Visible='<%# Convert.ToDecimal(Eval("Total")) > 0 %>' />
+                        </ItemTemplate>
+                    </asp:TemplateField>
                 </Columns>
             </asp:GridView>
             <asp:Button ID="btnSaveGrades" runat="server" Text="Save All Grades" CssClass="btn btn-success" OnClick="btnSaveGrades_Click" />

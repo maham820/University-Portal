@@ -95,7 +95,7 @@ namespace UniversityPortal.Teacher
                 }
 
                 DbConnection.ExecuteCommand(query, parameters);
-                ShowMessage("Announcement posted successfully!", "alert-success");
+                ShowMessage("Announcement saved successfully!", "alert-success");
                 ClearForm();
                 LoadAnnouncements();
             }
@@ -105,52 +105,43 @@ namespace UniversityPortal.Teacher
             }
         }
 
-        protected void gvAnnouncements_RowCommand(object sender, GridViewCommandEventArgs e)
+        protected void btnEdit_Click(object sender, EventArgs e)
         {
-            if (e.CommandName == "EditAnnouncement")
-            {
-                int announcementId = int.Parse(e.CommandArgument.ToString());
-                LoadAnnouncementForEdit(announcementId);
-            }
+            LinkButton btn = (LinkButton)sender;
+            int announcementId = int.Parse(btn.CommandArgument);
+            LoadAnnouncementForEdit(announcementId);
         }
 
         private void LoadAnnouncementForEdit(int announcementId)
         {
             int teacherId = (int)Session["UserId"];
             string query = "SELECT * FROM Announcements WHERE AnnouncementId = @AnnouncementId AND TeacherId = @TeacherId";
-            SqlParameter[] parameters = new SqlParameter[]
-            {
+            DataTable dt = DbConnection.GetData(query, 
                 new SqlParameter("@AnnouncementId", announcementId),
-                new SqlParameter("@TeacherId", teacherId)
-            };
+                new SqlParameter("@TeacherId", teacherId));
 
-            using (SqlConnection conn = DbConnection.GetConnection())
+            if (dt.Rows.Count > 0)
             {
-                SqlDataReader reader = DbConnection.GetReader(query, conn, parameters);
-                if (reader.Read())
-                {
-                    hfAnnouncementId.Value = reader["AnnouncementId"].ToString();
-                    ddlCourse.SelectedValue = reader["CourseId"].ToString();
-                    txtTitle.Text = reader["Title"].ToString();
-                    txtContent.Text = reader["Content"].ToString();
-                    lblFormTitle.Text = "Edit Announcement";
-                }
+                DataRow row = dt.Rows[0];
+                hfAnnouncementId.Value = row["AnnouncementId"].ToString();
+                ddlCourse.SelectedValue = row["CourseId"].ToString();
+                txtTitle.Text = row["Title"].ToString();
+                txtContent.Text = row["Content"].ToString();
+                lblFormTitle.Text = "Edit Announcement";
             }
         }
 
-        protected void gvAnnouncements_RowDeleting(object sender, GridViewDeleteEventArgs e)
+        protected void btnDelete_Click(object sender, EventArgs e)
         {
-            int announcementId = int.Parse(gvAnnouncements.DataKeys[e.RowIndex].Value.ToString());
+            LinkButton btn = (LinkButton)sender;
+            int announcementId = int.Parse(btn.CommandArgument);
             int teacherId = (int)Session["UserId"];
 
             string query = "DELETE FROM Announcements WHERE AnnouncementId = @AnnouncementId AND TeacherId = @TeacherId";
-            SqlParameter[] parameters = new SqlParameter[]
-            {
+            DbConnection.ExecuteCommand(query, 
                 new SqlParameter("@AnnouncementId", announcementId),
-                new SqlParameter("@TeacherId", teacherId)
-            };
-
-            DbConnection.ExecuteCommand(query, parameters);
+                new SqlParameter("@TeacherId", teacherId));
+            
             ShowMessage("Announcement deleted successfully!", "alert-success");
             LoadAnnouncements();
         }
@@ -166,7 +157,7 @@ namespace UniversityPortal.Teacher
             ddlCourse.SelectedIndex = 0;
             txtTitle.Text = "";
             txtContent.Text = "";
-            lblFormTitle.Text = "Create New Announcement";
+            lblFormTitle.Text = "Add New Announcement";
         }
 
         private void ShowMessage(string message, string cssClass)

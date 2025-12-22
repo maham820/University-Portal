@@ -29,7 +29,7 @@
     <div class="card">
         <h3>All Notes</h3>
         <asp:GridView ID="gvNotes" runat="server" AutoGenerateColumns="False" 
-            OnRowCommand="gvNotes_RowCommand" OnRowDeleting="gvNotes_RowDeleting">
+            OnRowCommand="gvNotes_RowCommand">
             <Columns>
                 <asp:BoundField DataField="Title" HeaderText="Title" />
                 <asp:BoundField DataField="Content" HeaderText="Content" />
@@ -38,7 +38,7 @@
                     <ItemTemplate>
                         <asp:LinkButton ID="btnEdit" runat="server" CommandName="EditNote" 
                             CommandArgument='<%# Eval("NoteId") %>' CssClass="btn btn-primary" Text="Edit" />
-                        <asp:LinkButton ID="btnDelete" runat="server" CommandName="Delete" 
+                        <asp:LinkButton ID="btnDelete" runat="server" CommandName="DeleteNote" 
                             CommandArgument='<%# Eval("NoteId") %>' CssClass="btn btn-danger" 
                             Text="Delete" OnClientClick="return confirm('Delete this note?');" />
                     </ItemTemplate>

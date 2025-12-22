@@ -94,44 +94,36 @@ namespace UniversityPortal.Admin
 
         protected void gvTeachers_RowCommand(object sender, GridViewCommandEventArgs e)
         {
+            int userId = int.Parse(e.CommandArgument.ToString());
+
             if (e.CommandName == "EditTeacher")
             {
-                int userId = int.Parse(e.CommandArgument.ToString());
                 LoadTeacherForEdit(userId);
+            }
+            else if (e.CommandName == "DeleteTeacher")
+            {
+                string query = "DELETE FROM Users WHERE UserId = @UserId";
+                DbConnection.ExecuteCommand(query, new SqlParameter("@UserId", userId));
+                ShowMessage("Teacher deleted successfully!", "alert-success");
+                LoadTeachers();
             }
         }
 
         private void LoadTeacherForEdit(int userId)
         {
             string query = "SELECT * FROM Users WHERE UserId = @UserId";
-            SqlParameter[] parameters = new SqlParameter[]
-            {
-                new SqlParameter("@UserId", userId)
-            };
+            DataTable dt = DbConnection.GetData(query, new SqlParameter("@UserId", userId));
 
-            using (SqlConnection conn = DbConnection.GetConnection())
+            if (dt.Rows.Count > 0)
             {
-                SqlDataReader reader = DbConnection.GetReader(query, conn, parameters);
-                if (reader.Read())
-                {
-                    hfUserId.Value = reader["UserId"].ToString();
-                    txtFullName.Text = reader["FullName"].ToString();
-                    txtUsername.Text = reader["Username"].ToString();
-                    txtEmail.Text = reader["Email"].ToString();
-                    txtPassword.Text = "";
-                    lblFormTitle.Text = "Edit Teacher";
-                }
+                DataRow row = dt.Rows[0];
+                hfUserId.Value = row["UserId"].ToString();
+                txtFullName.Text = row["FullName"].ToString();
+                txtUsername.Text = row["Username"].ToString();
+                txtEmail.Text = row["Email"].ToString();
+                txtPassword.Text = "";
+                lblFormTitle.Text = "Edit Teacher";
             }
-        }
-
-        protected void gvTeachers_RowDeleting(object sender, GridViewDeleteEventArgs e)
-        {
-            int userId = int.Parse(gvTeachers.DataKeys[e.RowIndex].Value.ToString());
-
-            string query = "DELETE FROM Users WHERE UserId = @UserId";
-            DbConnection.ExecuteCommand(query, new SqlParameter("@UserId", userId));
-            ShowMessage("Teacher deleted successfully!", "alert-success");
-            LoadTeachers();
         }
 
         protected void btnCancel_Click(object sender, EventArgs e)
@@ -144,8 +136,8 @@ namespace UniversityPortal.Admin
             hfUserId.Value = "";
             txtFullName.Text = "";
             txtUsername.Text = "";
-            txtPassword.Text = "";
             txtEmail.Text = "";
+            txtPassword.Text = "";
             lblFormTitle.Text = "Add New Teacher";
         }
 

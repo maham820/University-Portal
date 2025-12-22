@@ -15,7 +15,7 @@
     </div>
     <div class="card">
         <h3>All Teachers</h3>
-        <asp:GridView ID="gvTeachers" runat="server" AutoGenerateColumns="False" DataKeyNames="UserId" OnRowCommand="gvTeachers_RowCommand" OnRowDeleting="gvTeachers_RowDeleting">
+        <asp:GridView ID="gvTeachers" runat="server" AutoGenerateColumns="False" OnRowCommand="gvTeachers_RowCommand">
             <Columns>
                 <asp:BoundField DataField="UserId" HeaderText="ID" />
                 <asp:BoundField DataField="FullName" HeaderText="Full Name" />
@@ -25,7 +25,7 @@
                 <asp:TemplateField HeaderText="Actions">
                     <ItemTemplate>
                         <asp:LinkButton ID="btnEdit" runat="server" CommandName="EditTeacher" CommandArgument='<%# Eval("UserId") %>' CssClass="btn btn-primary" Text="Edit" />
-                        <asp:LinkButton ID="btnDelete" runat="server" CommandName="Delete" CommandArgument='<%# Eval("UserId") %>' CssClass="btn btn-danger" Text="Delete" OnClientClick="return confirm('Delete?');" />
+                        <asp:LinkButton ID="btnDelete" runat="server" CommandName="DeleteTeacher" CommandArgument='<%# Eval("UserId") %>' CssClass="btn btn-danger" Text="Delete" OnClientClick="return confirm('Delete?');" />
                     </ItemTemplate>
                 </asp:TemplateField>
             </Columns>

@@ -70,6 +70,9 @@ namespace UniversityPortal.Teacher
             try
             {
                 DateTime attendanceDate = DateTime.Parse(txtClassDate.Text);
+                bool recordsUpdated = false;
+                int insertCount = 0;
+                int updateCount = 0;
 
                 using (SqlConnection conn = DbConnection.GetConnection())
                 {
@@ -95,10 +98,31 @@ namespace UniversityPortal.Teacher
                                 new SqlParameter("@EnrollmentId", enrollmentId),
                                 new SqlParameter("@AttendanceDate", attendanceDate),
                                 new SqlParameter("@Status", status));
+                            insertCount++;
+                        }
+                        else
+                        {
+                            // Update existing attendance record
+                            string updateQuery = @"UPDATE Attendance SET Status=@Status 
+                                                  WHERE EnrollmentId=@EnrollmentId AND AttendanceDate=@AttendanceDate";
+
+                            DbConnection.ExecuteCommand(updateQuery,
+                                new SqlParameter("@Status", status),
+                                new SqlParameter("@EnrollmentId", enrollmentId),
+                                new SqlParameter("@AttendanceDate", attendanceDate));
+                            updateCount++;
+                            recordsUpdated = true;
                         }
                     }
 
-                    ShowMessage("Attendance saved successfully!", "alert-success");
+                    if (recordsUpdated)
+                    {
+                        ShowMessage($"Attendance saved! ({insertCount} new, {updateCount} updated)", "alert-success");
+                    }
+                    else
+                    {
+                        ShowMessage("Attendance saved successfully!", "alert-success");
+                    }
                     LoadAttendanceHistory();
                 }
             }

@@ -47,6 +47,7 @@ namespace UniversityPortal.Student
                 if (string.IsNullOrEmpty(hfNoteId.Value))
                 {
                     query = "INSERT INTO StudentNotes (StudentId, Title, Content) VALUES (@StudentId, @Title, @Content)";
+
                     parameters = new SqlParameter[]
                     {
                         new SqlParameter("@StudentId", studentId),
@@ -57,6 +58,7 @@ namespace UniversityPortal.Student
                 else
                 {
                     query = "UPDATE StudentNotes SET Title=@Title, Content=@Content WHERE NoteId=@NoteId AND StudentId=@StudentId";
+
                     parameters = new SqlParameter[]
                     {
                         new SqlParameter("@StudentId", studentId),
@@ -79,10 +81,22 @@ namespace UniversityPortal.Student
 
         protected void gvNotes_RowCommand(object sender, GridViewCommandEventArgs e)
         {
+            int noteId = int.Parse(e.CommandArgument.ToString());
+
             if (e.CommandName == "EditNote")
             {
-                int noteId = int.Parse(e.CommandArgument.ToString());
                 LoadNoteForEdit(noteId);
+            }
+            else if (e.CommandName == "DeleteNote")
+            {
+                int studentId = (int)Session["UserId"];
+                string query = "DELETE FROM StudentNotes WHERE NoteId = @NoteId AND StudentId = @StudentId";
+                DbConnection.ExecuteCommand(query,
+                    new SqlParameter("@NoteId", noteId),
+                    new SqlParameter("@StudentId", studentId));
+
+                ShowMessage("Note deleted successfully!", "alert-success");
+                LoadNotes();
             }
         }
 
@@ -90,40 +104,18 @@ namespace UniversityPortal.Student
         {
             int studentId = (int)Session["UserId"];
             string query = "SELECT * FROM StudentNotes WHERE NoteId = @NoteId AND StudentId = @StudentId";
-            SqlParameter[] parameters = new SqlParameter[]
-            {
+            DataTable dt = DbConnection.GetData(query,
                 new SqlParameter("@NoteId", noteId),
-                new SqlParameter("@StudentId", studentId)
-            };
+                new SqlParameter("@StudentId", studentId));
 
-            using (SqlConnection conn = DbConnection.GetConnection())
+            if (dt.Rows.Count > 0)
             {
-                SqlDataReader reader = DbConnection.GetReader(query, conn, parameters);
-                if (reader.Read())
-                {
-                    hfNoteId.Value = reader["NoteId"].ToString();
-                    txtTitle.Text = reader["Title"].ToString();
-                    txtContent.Text = reader["Content"].ToString();
-                    lblFormTitle.Text = "Edit Note";
-                }
+                DataRow row = dt.Rows[0];
+                hfNoteId.Value = row["NoteId"].ToString();
+                txtTitle.Text = row["Title"].ToString();
+                txtContent.Text = row["Content"].ToString();
+                lblFormTitle.Text = "Edit Note";
             }
-        }
-
-        protected void gvNotes_RowDeleting(object sender, GridViewDeleteEventArgs e)
-        {
-            int noteId = int.Parse(gvNotes.DataKeys[e.RowIndex].Value.ToString());
-            int studentId = (int)Session["UserId"];
-
-            string query = "DELETE FROM StudentNotes WHERE NoteId = @NoteId AND StudentId = @StudentId";
-            SqlParameter[] parameters = new SqlParameter[]
-            {
-                new SqlParameter("@NoteId", noteId),
-                new SqlParameter("@StudentId", studentId)
-            };
-
-            DbConnection.ExecuteCommand(query, parameters);
-            ShowMessage("Note deleted successfully!", "alert-success");
-            LoadNotes();
         }
 
         protected void btnCancel_Click(object sender, EventArgs e)

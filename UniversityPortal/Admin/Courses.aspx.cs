@@ -52,30 +52,34 @@ namespace UniversityPortal.Admin
             try
             {
                 string query;
+                SqlParameter[] parameters;
 
                 if (string.IsNullOrEmpty(hfCourseId.Value))
                 {
                     query = @"INSERT INTO Courses (CourseName, CourseCode, CreditHours, TeacherId) 
                              VALUES (@CourseName, @CourseCode, @CreditHours, @TeacherId)";
+
+                    parameters = new SqlParameter[]
+                    {
+                        new SqlParameter("@CourseName", txtCourseName.Text),
+                        new SqlParameter("@CourseCode", txtCourseCode.Text),
+                        new SqlParameter("@CreditHours", int.Parse(txtCreditHours.Text)),
+                        new SqlParameter("@TeacherId", string.IsNullOrEmpty(ddlTeacher.SelectedValue) ? (object)DBNull.Value : int.Parse(ddlTeacher.SelectedValue))
+                    };
                 }
                 else
                 {
                     query = @"UPDATE Courses SET CourseName=@CourseName, CourseCode=@CourseCode, 
                              CreditHours=@CreditHours, TeacherId=@TeacherId WHERE CourseId=@CourseId";
-                }
 
-                SqlParameter[] parameters = new SqlParameter[]
-                {
-                    new SqlParameter("@CourseName", txtCourseName.Text),
-                    new SqlParameter("@CourseCode", txtCourseCode.Text),
-                    new SqlParameter("@CreditHours", int.Parse(txtCreditHours.Text)),
-                    new SqlParameter("@TeacherId", string.IsNullOrEmpty(ddlTeacher.SelectedValue) ? (object)DBNull.Value : int.Parse(ddlTeacher.SelectedValue))
-                };
-
-                if (!string.IsNullOrEmpty(hfCourseId.Value))
-                {
-                    Array.Resize(ref parameters, parameters.Length + 1);
-                    parameters[parameters.Length - 1] = new SqlParameter("@CourseId", int.Parse(hfCourseId.Value));
+                    parameters = new SqlParameter[]
+                    {
+                        new SqlParameter("@CourseName", txtCourseName.Text),
+                        new SqlParameter("@CourseCode", txtCourseCode.Text),
+                        new SqlParameter("@CreditHours", int.Parse(txtCreditHours.Text)),
+                        new SqlParameter("@TeacherId", string.IsNullOrEmpty(ddlTeacher.SelectedValue) ? (object)DBNull.Value : int.Parse(ddlTeacher.SelectedValue)),
+                        new SqlParameter("@CourseId", int.Parse(hfCourseId.Value))
+                    };
                 }
 
                 DbConnection.ExecuteCommand(query, parameters);
@@ -99,23 +103,17 @@ namespace UniversityPortal.Admin
         private void LoadCourseForEdit(int courseId)
         {
             string query = "SELECT * FROM Courses WHERE CourseId = @CourseId";
-            SqlParameter[] parameters = new SqlParameter[]
-            {
-                new SqlParameter("@CourseId", courseId)
-            };
+            DataTable dt = DbConnection.GetData(query, new SqlParameter("@CourseId", courseId));
 
-            using (SqlConnection conn = DbConnection.GetConnection())
+            if (dt.Rows.Count > 0)
             {
-                SqlDataReader reader = DbConnection.GetReader(query, conn, parameters);
-                if (reader.Read())
-                {
-                    hfCourseId.Value = reader["CourseId"].ToString();
-                    txtCourseName.Text = reader["CourseName"].ToString();
-                    txtCourseCode.Text = reader["CourseCode"].ToString();
-                    txtCreditHours.Text = reader["CreditHours"].ToString();
-                    ddlTeacher.SelectedValue = reader["TeacherId"] == DBNull.Value ? "" : reader["TeacherId"].ToString();
-                    lblFormTitle.Text = "Edit Course";
-                }
+                DataRow row = dt.Rows[0];
+                hfCourseId.Value = row["CourseId"].ToString();
+                txtCourseName.Text = row["CourseName"].ToString();
+                txtCourseCode.Text = row["CourseCode"].ToString();
+                txtCreditHours.Text = row["CreditHours"].ToString();
+                ddlTeacher.SelectedValue = row["TeacherId"] == DBNull.Value ? "" : row["TeacherId"].ToString();
+                lblFormTitle.Text = "Edit Course";
             }
         }
 
@@ -125,12 +123,7 @@ namespace UniversityPortal.Admin
             int courseId = int.Parse(btn.CommandArgument);
 
             string query = "DELETE FROM Courses WHERE CourseId = @CourseId";
-            SqlParameter[] parameters = new SqlParameter[]
-            {
-                new SqlParameter("@CourseId", courseId)
-            };
-
-            DbConnection.ExecuteCommand(query, parameters);
+            DbConnection.ExecuteCommand(query, new SqlParameter("@CourseId", courseId));
             ShowMessage("Course deleted successfully!", "alert-success");
             LoadCourses();
         }
