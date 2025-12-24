@@ -100,13 +100,7 @@ namespace UniversityPortal.Admin
             {
                 LoadTeacherForEdit(userId);
             }
-            else if (e.CommandName == "DeleteTeacher")
-            {
-                string query = "DELETE FROM Users WHERE UserId = @UserId";
-                DbConnection.ExecuteCommand(query, new SqlParameter("@UserId", userId));
-                ShowMessage("Teacher deleted successfully!", "alert-success");
-                LoadTeachers();
-            }
+            
         }
 
         private void LoadTeacherForEdit(int userId)
@@ -146,6 +140,13 @@ namespace UniversityPortal.Admin
             lblMessage.Text = message;
             pnlMessage.CssClass = "alert " + cssClass;
             pnlMessage.Visible = true;
+        }
+
+        private void DeleteTeacher(int userId)
+        {
+
+            string query = "DELETE FROM Users WHERE UserId = @UserId";
+            DbConnection.ExecuteCommand(query, new SqlParameter("@UserId", userId));
         }
     }
 }

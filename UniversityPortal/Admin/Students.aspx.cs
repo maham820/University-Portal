@@ -102,10 +102,19 @@ namespace UniversityPortal.Admin
             }
             else if (e.CommandName == "DeleteStudent")
             {
-                string query = "DELETE FROM Users WHERE UserId = @UserId";
-                DbConnection.ExecuteCommand(query, new SqlParameter("@UserId", userId));
-                ShowMessage("Student deleted successfully!", "alert-success");
-                LoadStudents();
+                try
+                {
+                    // Database CASCADE will handle all related records automatically
+                    string query = "DELETE FROM Users WHERE UserId = @UserId";
+                    DbConnection.ExecuteCommand(query, new SqlParameter("@UserId", userId));
+                    
+                    ShowMessage("Student deleted successfully!", "alert-success");
+                    LoadStudents();
+                }
+                catch (Exception ex)
+                {
+                    ShowMessage("Error deleting student: " + ex.Message, "alert-danger");
+                }
             }
         }
 
