@@ -1,0 +1,111 @@
+ USE testProject;
+-- Users Table (Admin, Teachers, Students)
+CREATE TABLE Users (
+    UserId INT PRIMARY KEY IDENTITY(1,1),
+    Username NVARCHAR(50) UNIQUE NOT NULL,
+    Password NVARCHAR(255) NOT NULL,
+    FullName NVARCHAR(100) NOT NULL,
+    Email NVARCHAR(100) NOT NULL,
+    Role NVARCHAR(20) NOT NULL CHECK (Role IN ('Admin', 'Teacher', 'Student')),
+    CreatedDate DATETIME DEFAULT GETDATE()
+);
+
+-- Courses Table 
+CREATE TABLE Courses (
+    CourseId INT PRIMARY KEY IDENTITY(1,1),
+    CourseName NVARCHAR(100) NOT NULL,
+    CourseCode NVARCHAR(20) UNIQUE NOT NULL,
+    CreditHours INT NOT NULL,
+    TeacherId INT,
+    FOREIGN KEY (TeacherId) REFERENCES Users(UserId) ON DELETE SET NULL
+);
+
+-- Enrollments Table 
+CREATE TABLE Enrollments (
+    EnrollmentId INT PRIMARY KEY IDENTITY(1,1),
+    StudentId INT NOT NULL,
+    CourseId INT NOT NULL,
+    EnrollmentDate DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (StudentId) REFERENCES Users(UserId) ON DELETE CASCADE,
+    FOREIGN KEY (CourseId) REFERENCES Courses(CourseId) ON DELETE CASCADE,
+    UNIQUE(StudentId, CourseId)
+);
+
+-- Attendance Table
+CREATE TABLE Attendance (
+    AttendanceId INT PRIMARY KEY IDENTITY(1,1),
+    EnrollmentId INT NOT NULL,
+    AttendanceDate DATE NOT NULL,
+    Status NVARCHAR(10) NOT NULL CHECK (Status IN ('Present', 'Absent', 'Late')),
+    FOREIGN KEY (EnrollmentId) REFERENCES Enrollments(EnrollmentId) ON DELETE CASCADE,
+    UNIQUE(EnrollmentId, AttendanceDate)
+);
+
+-- Grades Table
+CREATE TABLE Grades (
+    GradeId INT PRIMARY KEY IDENTITY(1,1),
+    EnrollmentId INT NOT NULL,
+    Mids DECIMAL(5,2) DEFAULT 0 CHECK (Mids >= 0 AND Mids <= 25),
+    Internals DECIMAL(5,2) DEFAULT 0 CHECK (Internals >= 0 AND Internals <= 25),
+    Finals DECIMAL(5,2) DEFAULT 0 CHECK (Finals >= 0 AND Finals <= 50),
+    Total AS (Mids + Internals + Finals),
+    FOREIGN KEY (EnrollmentId) REFERENCES Enrollments(EnrollmentId) ON DELETE CASCADE,
+    UNIQUE(EnrollmentId)
+);
+
+-- Announcements Table
+CREATE TABLE Announcements (
+    AnnouncementId INT PRIMARY KEY IDENTITY(1,1),
+    TeacherId INT NOT NULL,
+    CourseId INT NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    Content NVARCHAR(MAX) NOT NULL,
+    CreatedDate DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (TeacherId) REFERENCES Users(UserId) ON DELETE CASCADE,
+    FOREIGN KEY (CourseId) REFERENCES Courses(CourseId) ON DELETE CASCADE
+);
+
+-- Warnings Table
+CREATE TABLE Warnings (
+    WarningId INT PRIMARY KEY IDENTITY(1,1),
+    StudentId INT NOT NULL,
+    Message NVARCHAR(500) NOT NULL,
+    SentDate DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (StudentId) REFERENCES Users(UserId) ON DELETE CASCADE
+);
+
+-- Student Notes Table
+CREATE TABLE StudentNotes (
+    NoteId INT PRIMARY KEY IDENTITY(1,1),
+    StudentId INT NOT NULL,
+    Title NVARCHAR(200) NOT NULL,
+    Content NVARCHAR(MAX) NOT NULL,
+    CreatedDate DATETIME DEFAULT GETDATE(),
+    FOREIGN KEY (StudentId) REFERENCES Users(UserId) ON DELETE CASCADE
+);
+
+-- Insert Default Admin
+INSERT INTO Users (Username, Password, FullName, Email, Role)
+VALUES ('admin', 'admin123', 'System Administrator', 'admin@university.com', 'Admin');
+
+-- Insert Sample Teachers
+INSERT INTO Users (Username, Password, FullName, Email, Role)
+VALUES 
+('teacher1', 'teacher123', 'Dr Zain Ali', 'zain.ali@university.com', 'Teacher'),
+('teacher2', 'teacher123', 'Dr Sarah Fakhir', 'sarah.fakhir@university.com', 'Teacher');
+
+-- Insert Sample Students
+INSERT INTO Users (Username, Password, FullName, Email, Role)
+VALUES 
+('student1', 'student123', 'Aliya Rashid', 'aliya_rashid@student.edu', 'Student'),
+('student2', 'student123', 'Zeeshan Malik', 'zeeshanmalik@student.edu', 'Student'),
+('student3', 'student123', 'Rehan Awais', 'rehan_awais@student.edu', 'Student');
+
+-- Insert Sample Courses
+INSERT INTO Courses (CourseName, CourseCode, CreditHours, TeacherId)
+VALUES 
+('Database Systems', 'CS301', 3, 2),
+('Web Development', 'CS401', 3, 2),
+('Data Structures', 'CS201', 4, 3);
+
+GO
