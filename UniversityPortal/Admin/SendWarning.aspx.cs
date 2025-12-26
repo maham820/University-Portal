@@ -78,22 +78,22 @@ namespace UniversityPortal.Admin
                 if (warningCount == 0)
                 {
                     // 1st Warning
-                    message = $"⚠️ WARNING #1: Your attendance in {courseName} is critically low at {percentage}%. You must improve your attendance immediately.";
+                    message = $"WARNING #1: Your attendance in {courseName} is critically low at {percentage}%. You must improve your attendance immediately.";
                 }
                 else if (warningCount == 1)
                 {
                     // 2nd Warning
-                    message = $"⚠️ WARNING #2: Your attendance in {courseName} is critically low at {percentage}%. This is your second warning. Please improve your attendance.";
+                    message = $"WARNING #2: Your attendance in {courseName} is critically low at {percentage}%. This is your second warning. Please improve your attendance.";
                 }
                 else if (warningCount == 2)
                 {
                     // 3rd Warning - FINAL WARNING
-                    message = $"🚨 FINAL WARNING #3: Your attendance in {courseName} is critically low at {percentage}%. This is your FINAL WARNING. One more warning and you will be struck off from the course.";
+                    message = $"FINAL WARNING #3: Your attendance in {courseName} is critically low at {percentage}%. This is your FINAL WARNING. One more warning and you will be struck off from the course.";
                 }
                 else if (warningCount >= 3)
                 {
                     // 4th Warning - STRUCK OFF
-                    message = $"🚨 STRUCK OFF NOTICE: You have been removed from {courseName} due to critically low attendance ({percentage}%) after receiving 3 warnings. Contact administration for more information.";
+                    message = $"STRUCK OFF NOTICE: You have been removed from {courseName} due to critically low attendance ({percentage}%) after receiving 3 warnings. Contact administration for more information.";
                     
                     // Insert the struck off warning first
                     string warningQuery = "INSERT INTO Warnings (StudentId, Message) VALUES (@StudentId, @Message)";
@@ -126,7 +126,7 @@ namespace UniversityPortal.Admin
                 }
                 else
                 {
-                    message = $"⚠️ ATTENDANCE WARNING: Your attendance in {courseName} is critically low at {percentage}%. You must improve your attendance or you will get struck off.";
+                    message = $"ATTENDANCE WARNING: Your attendance in {courseName} is critically low at {percentage}%. You must improve your attendance or you will get struck off.";
                 }
 
                 // Insert warning for warnings 1-3

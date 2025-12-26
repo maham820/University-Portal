@@ -100,7 +100,32 @@ namespace UniversityPortal.Admin
             {
                 LoadTeacherForEdit(userId);
             }
-            
+            else if (e.CommandName == "DeleteTeacher")
+            {
+                try
+                {
+                    // Check if teacher has courses assigned
+                    string checkQuery = "SELECT COUNT(*) FROM Courses WHERE TeacherId = @TeacherId";
+                    int courseCount = (int)DbConnection.GetSingleValue(checkQuery, new SqlParameter("@TeacherId", userId));
+
+                    if (courseCount > 0)
+                    {
+                        ShowMessage($"Cannot delete teacher. They are assigned to {courseCount} course(s). Please reassign courses first.", "alert-danger");
+                        return;
+                    }
+
+                    // Delete teacher
+                    string query = "DELETE FROM Users WHERE UserId = @UserId";
+                    DbConnection.ExecuteCommand(query, new SqlParameter("@UserId", userId));
+                    
+                    ShowMessage("Teacher deleted successfully!", "alert-success");
+                    LoadTeachers();
+                }
+                catch (Exception ex)
+                {
+                    ShowMessage("Error deleting teacher: " + ex.Message, "alert-danger");
+                }
+            }
         }
 
         private void LoadTeacherForEdit(int userId)
@@ -140,13 +165,6 @@ namespace UniversityPortal.Admin
             lblMessage.Text = message;
             pnlMessage.CssClass = "alert " + cssClass;
             pnlMessage.Visible = true;
-        }
-
-        private void DeleteTeacher(int userId)
-        {
-
-            string query = "DELETE FROM Users WHERE UserId = @UserId";
-            DbConnection.ExecuteCommand(query, new SqlParameter("@UserId", userId));
         }
     }
 }
